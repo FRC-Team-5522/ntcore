@@ -54,12 +54,21 @@ int main( int argc, char**)
     //                   std::fputc('\n', stderr);
     //               },
     //               0);
-    nt::StartClient("127.0.0.1", 10000);
+    nt::StartClient("127.0.0.1", 1735);
     std::this_thread::sleep_for(std::chrono::seconds(1));
+    auto foo = nt::GetEntryValue("/foo");
+    if (foo && foo->IsDouble()) printf("Got foo: %g\n", foo->GetDouble());
+    nt::SetEntryValue("/bar", nt::Value::MakeBoolean(false));
+    nt::SetEntryFlags("/bar", NT_PERSISTENT);
+    nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(true));
+    nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(false));
+    nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(true));
+
+
     VideoCapture camera(1);
     print_camera_prop(&camera);
-    setup_camera(&camera);
-    print_camera_prop(&camera);
+    // setup_camera(&camera);
+    // print_camera_prop(&camera);
     unsigned long int cnt = 0;
 
     Mat frame;
@@ -77,7 +86,7 @@ int main( int argc, char**)
             cv::cvtColor(frame, img, CV_RGB2GRAY);
             Mat bw = img > 230;
 
-            imshow("bw", bw);
+            // imshow("bw", bw);
             vector<vector<Point> > contours0;
             contours.resize(0);
             // findContours(bw, contours0, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
@@ -115,18 +124,11 @@ int main( int argc, char**)
             drawContours(source, contours, -1, Scalar(255,0,0),
                          3, CV_AA, hierarchy, std::abs(_levels) );
 
-            imshow("camera", source);
+            // imshow("camera", source);
         
             if( cvWaitKey(10) >= 0 )
                 break;
         }
     return 0;
-    auto foo = nt::GetEntryValue("/foo");
-    if (foo && foo->IsDouble()) printf("Got foo: %g\n", foo->GetDouble());
-    nt::SetEntryValue("/bar", nt::Value::MakeBoolean(false));
-    nt::SetEntryFlags("/bar", NT_PERSISTENT);
-    nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(true));
-    nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(false));
-    nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(true));
     std::this_thread::sleep_for(std::chrono::seconds(10));
 }
