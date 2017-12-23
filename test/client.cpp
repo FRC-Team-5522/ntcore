@@ -113,7 +113,7 @@ int main( int argc, char* argv[])
 
             for( size_t k = 0; k < contours0.size(); k++ ) {
                 double area  = contourArea(contours0[k]);
-                if (area > 500) {
+                if (area > 500) {                                                                                    //set area(max/min)
                     Rect bb = boundingRect(contours0[k]);
                     double centerX = bb.x + bb.width / 2;
                     double centerY = bb.y + bb.height / 2;
