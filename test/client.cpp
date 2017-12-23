@@ -1,3 +1,4 @@
+
 #include <chrono>
 #include <cstdio>
 #include <thread>
@@ -12,8 +13,6 @@
 
 using namespace cv;
 using namespace std;
-
-
 
 void setup_camera(VideoCapture *camera)
 {
@@ -44,7 +43,7 @@ void print_camera_prop(VideoCapture *camera)
     // ret = camera->get(CV_CAP_PROP_CONVERT_RGB   ); printf("CV_CAP_PROP_CONVERT_RGB   = %f\n", ret);
 }
 
-int main( int argc, char**)
+int main( int argc, char* argv[])
 {
 
     // nt::SetLogger(
@@ -54,18 +53,21 @@ int main( int argc, char**)
     //                   std::fputc('\n', stderr);
     //               },
     //               0);
-    nt::StartClient("127.0.0.1", 1735);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    auto foo = nt::GetEntryValue("/foo");
-    if (foo && foo->IsDouble()) printf("Got foo: %g\n", foo->GetDouble());
-    nt::SetEntryValue("/bar", nt::Value::MakeBoolean(false));
-    nt::SetEntryFlags("/bar", NT_PERSISTENT);
-    nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(true));
-    nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(false));
-    nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(true));
+    if (argc != 4) {
+        printf("my-grip <network table ip> <port> <camera dev (0,1...)>\n");
+        exit(1);
+    }
+    char * ip = argv[1];
+    int port = (int)strtol(argv[2], NULL, 10);
+    int camera_dev = (int)strtol(argv[3], NULL, 10);
+    printf("network table server ip = %s  port = %d camera dev = %d\n", ip, port, camera_dev);
 
 
-    VideoCapture camera(1);
+    VideoCapture camera(camera_dev);
+    if (!camera.isOpened()) {
+        printf("can not open camera %d\n", camera_dev);
+        exit(-1);
+    }
     print_camera_prop(&camera);
     // setup_camera(&camera);
     // print_camera_prop(&camera);
@@ -76,23 +78,35 @@ int main( int argc, char**)
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
     int levels = 3;
-    
+
+    nt::StartClient(ip, port);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    // auto foo = nt::GetEntryValue("/foo");
+    // if (foo && foo->IsDouble()) printf("Got foo: %g\n", foo->GetDouble());
+    // nt::SetEntryValue("/bar", nt::Value::MakeBoolean(false));
+    // nt::SetEntryFlags("/bar", NT_PERSISTENT);
+    // nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(true));
+    // nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(false));
+    // nt::SetEntryValue("/bar2", nt::Value::MakeBoolean(true));
+
     for(;;)
         {
             cnt++;
-
+            vector<vector<Point> > contours0;
             camera >> frame;
             Mat img;
             cv::cvtColor(frame, img, CV_RGB2GRAY);
-            Mat bw = img > 230;
+            // printf("row=%d col = %d %d\n", frame.rows, frame.cols, frame.empty());
+            Mat bw = img > 250;
 
-            // imshow("bw", bw);
-            vector<vector<Point> > contours0;
+            imshow("bw", bw);
             contours.resize(0);
             // findContours(bw, contours0, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
             findContours(bw, contours0, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_TC89_KCOS);
             int contour_cnt = 0;
-            printf("cnt= %ld contours0.size() = %d\n", cnt, contours0.size());
+            if (cnt % 30 == 0) {
+                printf("cnt= %ld\n", cnt);
+            }
             std::vector<double> value_area;
             std::vector<double> value_centerX;
             std::vector<double> value_centerY;
@@ -111,21 +125,21 @@ int main( int argc, char**)
                     value_area[contour_cnt] = area;
                     value_centerX[contour_cnt] = centerX;
                     value_centerY[contour_cnt] = centerY;
-                    nt::SetEntryValue("/grip/area", nt::Value::MakeDoubleArray(value_area));
-                    nt::SetEntryValue("/grip/centerX", nt::Value::MakeDoubleArray(value_centerX));
-                    nt::SetEntryValue("/grip/centerY", nt::Value::MakeDoubleArray(value_centerY));
-                    approxPolyDP(Mat(contours0[k]), contours[contour_cnt], 3, true);
+                    // approxPolyDP(Mat(contours0[k]), contours[contour_cnt], 3, true);
                     contour_cnt++;
                 };
             }
-            printf("\tcontours.size() = %d\n", contours.size());
+            nt::SetEntryValue("/grip/area", nt::Value::MakeDoubleArray(value_area));
+            nt::SetEntryValue("/grip/centerX", nt::Value::MakeDoubleArray(value_centerX));
+            nt::SetEntryValue("/grip/centerY", nt::Value::MakeDoubleArray(value_centerY));
+            // printf("\tcontours.size() = %d\n", contours.size());
             int _levels = levels - 3;
             Mat source = frame.clone();
             drawContours(source, contours, -1, Scalar(255,0,0),
                          3, CV_AA, hierarchy, std::abs(_levels) );
 
-            // imshow("camera", source);
-        
+            imshow("camera", source);
+            
             if( cvWaitKey(10) >= 0 )
                 break;
         }

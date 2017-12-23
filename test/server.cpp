@@ -5,13 +5,13 @@
 #include "ntcore.h"
 
 int main() {
-  nt::SetLogger(
-      [](unsigned int level, const char* file, unsigned int line,
-         const char* msg) {
-        std::fputs(msg, stderr);
-        std::fputc('\n', stderr);
-      },
-      0);
+  // nt::SetLogger(
+  //     [](unsigned int level, const char* file, unsigned int line,
+  //        const char* msg) {
+  //       std::fputs(msg, stderr);
+  //       std::fputc('\n', stderr);
+  //     },
+  //     0);
   nt::StartServer("persistent.ini", "", 1735);
   std::this_thread::sleep_for(std::chrono::seconds(1));
   nt::SetEntryValue("/foo", nt::Value::MakeDouble(0.5));
